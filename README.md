@@ -1,6 +1,6 @@
 # 🚀 GitHub Trending Agent
 
-![preview](./assets/preview.png)
+![preview](./assets/image.png)
 
 这是一个使用 FastAPI 和 SQLModel 构建的 GitHub Trending Agent 服务。它可以爬取 GitHub 热门仓库和开发者信息，使用 AI 生成总结，并提供 RSS feed。项目包含后端 API 服务和前端 Web 界面。
 

@@ -1,0 +1,19 @@
+# Environment variables
+.env
+
+# Database files
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE specific files (optional, depending on project needs)
+.vscode/
+
+# Node
+node_modules/

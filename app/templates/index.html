@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}GitHub Trending{% endblock %}
+{% block content %}
+<div class="glass-morphism-container"></div>
+<div class="content-container">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-white">GitHub Trending</h1>
+            <form method="get" class="flex space-x-2">
+                <div class="flex rounded-lg overflow-hidden border border-gray-300 glass-morphism-button">
+                    <button type="submit" name="since" value="daily"
+                        class="px-4 py-2 text-sm font-medium transition-all duration-200 {% if since.value=='daily' %}bg-indigo-500/30 text-white{% else %}text-gray-700 hover:bg-white/20{% endif %}">
+                        Daily
+                    </button>
+                    <div class="w-[1px] bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+                    <button type="submit" name="since" value="weekly"
+                        class="px-4 py-2 text-sm font-medium transition-all duration-200 {% if since.value=='weekly' %}bg-indigo-500/30 text-white{% else %}text-gray-700 hover:bg-white/20{% endif %}">
+                        Weekly
+                    </button>
+                    <div class="w-[1px] bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+                    <button type="submit" name="since" value="monthly"
+                        class="px-4 py-2 text-sm font-medium transition-all duration-200 {% if since.value=='monthly' %}bg-indigo-500/30 text-white{% else %}text-gray-700 hover:bg-white/20{% endif %}">
+                        Monthly
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for repo in repositories %}
+            <div
+                class="glass-morphism rounded-xl p-6 flex flex-col justify-between hover:shadow-2xl transition-shadow duration-200">
+                <div>
+                    <div class="flex items-top justify-between mb-4">
+                        <div class="flex items-center mb-2">
+                            <img src="https://github.com/{{ repo.username }}.png?size=200" alt="avatar"
+                                class="avatar w-10 h-10 rounded-full mr-3" />
+                            <div>
+                                <div class="text-gray-600 text-sm text-shadow-sm">
+                                    <a href="https://github.com/{{ repo.username }}" target="_blank"
+                                        class="hover:text-indigo-600 hover:underline">{{ repo.username }}</a>
+                                </div>
+                                <div class="font-semibold text-lg text-shadow">
+                                    <a href="{{ repo.url }}" target="_blank"
+                                        class="text-gray-800 hover:text-indigo-600 hover:underline">{{
+                                        repo.repository_name }}</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="rank font-bold text-2xl text-shadow whitespace-nowrap {% if repo.rank == 1%}text-amber-500 {% else %}text-gray-600{% endif %}">
+                            {% if repo.rank == 1%}
+                            <i class="fa-solid fa-trophy"></i>
+                            {% else %}
+                            <i class="fa-solid fa-medal"></i>
+                            {% endif %} {{ repo.rank }}
+                        </div>
+                    </div>
+                    <div class="description text-gray-600 mb-4 text-sm min-h-[100px] text-shadow-sm">
+                        {{ (repo.ai_summary or repo.description or "No description
+                        available.") |safe }}
+                    </div>
+                </div>
+                <div class="stats flex flex-wrap items-center gap-2 mt-4 text-gray-500 text-sm text-shadow-sm">
+                    <div class="flex items-center gap-2">
+                        {% if repo.language %}
+                        <span class="flex items-center whitespace-nowrap">
+                            <span class="w-3 h-3 rounded-full mr-2" {% if repo.language_color %}
+                                style="background-color: {{ repo.language_color }};" {% endif %}></span>
+                            <span>{{ repo.language }}</span>
+                        </span>
+                        {% endif %}
+                        <span class="whitespace-nowrap"><i class="fa fa-star text-amber-400"></i> {{ repo.total_stars
+                            }}</span>
+                        <span class="whitespace-nowrap"><i class="fa fa-code-branch text-indigo-400"></i> {{ repo.forks
+                            }}</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="whitespace-nowrap"><i class="fa-regular fa-star text-amber-400"></i> <span>{{
+                                repo.stars_since }} {{ since.value }}</span></span>
+                    </div>
+                </div>
+                <div class="keywords mt-2">
+                    {% for keyword in repo.keywords %}
+                    <span
+                        class="inline-flex items-center px-4 py-2 rounded-full text-xs font-medium text-blue-500 mr-1 mt-2 glass-morphism-keyword text-shadow-sm">
+                        {{ keyword.keyword }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

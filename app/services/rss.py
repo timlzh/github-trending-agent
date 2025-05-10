@@ -1,4 +1,5 @@
 from typing import List
+from uuid import uuid4
 
 from feedgen.feed import FeedGenerator
 
@@ -23,8 +24,21 @@ class RSSService:
             fe = fg.add_entry()
             fe.title(f"{repo.username}/{repo.repository_name}")
             fe.link(href=repo.url)
-            fe.description(repo.ai_summary)
+            fe.guid(repo.url)
             fe.author({"name": repo.username})
+            description = f"""<img src="https://opengraph.githubassets.com/{uuid4()}/{repo.username}/{repo.repository_name}" alt="GitHub Open Graph" style="width: 100%; height: auto;"/><br><br>
+            <h2>{repo.repository_name}</h2>
+            <p>{repo.ai_summary}</p>
+            <p><span style="background-color: {repo.language_color}; color: white; padding: 5px; border-radius: 5px;"></span> {repo.language}</p>
+            <p>⭐️ {repo.total_stars} stars</p>
+            <p>🍴 {repo.forks} forks </p>
+            <p>✨ {repo.stars_since} stars since {repo.since.value if repo.since else ""}</p>
+            <blockquote>
+            <p>{repo.description}</p>
+            </blockquote>
+            <p>📅 {repo.updated_at} updated</p>
+            """
+            fe.description(description)
 
         return fg.rss_str(pretty=True).decode("utf-8")
 

@@ -19,6 +19,7 @@ class TrendingScheduler:
         self.github_service = GitHubTrendingService()
         self.ai_service = AISummaryService()
         self.is_running = False
+        self.is_any_failure = False
 
     async def update_trending_data(self):
         """更新所有趋势数据"""
@@ -35,6 +36,7 @@ class TrendingScheduler:
         session: AsyncSession,
         since: AllowedDateRanges,
     ):
+        self.is_any_failure = False
         repositories = await self.github_service.get_trending_repositories(
             since=since,
         )
@@ -52,15 +54,27 @@ class TrendingScheduler:
                 existing_repo: Repository | None = result.scalar_one_or_none()
 
                 current_time = datetime.now(UTC)
-                if not existing_repo or existing_repo.created_at.replace(
-                    tzinfo=UTC
-                ) < current_time - timedelta(
-                    hours=Settings.app.SCHEDULER_INTERVAL_HOURS
+                update_time_threshold = current_time - timedelta(
+                    hours=Settings.app.UPDATE_INTERVAL
+                )
+                if (
+                    not existing_repo
+                    or existing_repo.created_at.replace(tzinfo=UTC)
+                    < update_time_threshold
+                    or existing_repo.ai_summary is None
+                    or len(existing_repo.keywords) == 0
                 ):
                     logging.info(
                         f"Updating repository {repo.username}/{repo.repository_name}"
                     )
-                    ai_summary = await self.ai_service.generate_summary(repo)
+                    try:
+                        ai_summary = await self.ai_service.generate_summary(repo)
+                    except Exception as e:
+                        logging.error(
+                            f"Error generating AI summary for {repo.username}/{repo.repository_name}: {e}"
+                        )
+                        ai_summary = None
+                        self.is_any_failure = True
                     logging.info(f"AI summary: {ai_summary}")
                     repo.ai_summary = ai_summary
                     repo.summary_language = Settings.ai.SUMMARY_LANGUAGE
@@ -72,15 +86,23 @@ class TrendingScheduler:
                     await session.commit()
                     await session.refresh(repo)
 
-                    ai_keywords = await self.ai_service.generate_tags(repo)
-                    logging.info(f"AI keywords: {ai_keywords}")
-                    keywords = [
-                        RepositoryKeyword(keyword=keyword, repository_id=repo.id)
-                        for keyword in ai_keywords
-                    ]
-                    session.add_all(keywords)
-                    await session.commit()
-                    await session.refresh(repo)
+                    try:
+                        ai_keywords = await self.ai_service.generate_tags(repo)
+                        logging.info(f"AI keywords: {ai_keywords}")
+                        keywords = [
+                            RepositoryKeyword(keyword=keyword, repository_id=repo.id)
+                            for keyword in ai_keywords
+                        ]
+                        if len(keywords) > 3:
+                            keywords = keywords[:3]
+                        session.add_all(keywords)
+                        await session.commit()
+                        await session.refresh(repo)
+                    except Exception as e:
+                        logging.error(
+                            f"Error generating AI keywords for {repo.username}/{repo.repository_name}: {e}"
+                        )
+                        self.is_any_failure = True
                 else:
                     repo = existing_repo
                     logging.info(
@@ -96,6 +118,7 @@ class TrendingScheduler:
                 )
                 trending_repo: TrendingRepository | None = result.scalar_one_or_none()
                 if trending_repo:
+                    trending_repo.repo_id = repo.id
                     trending_repo.repo = repo
                 else:
                     trending_repo = TrendingRepository(
@@ -107,42 +130,26 @@ class TrendingScheduler:
                 session.add(trending_repo)
                 await session.commit()
                 await session.refresh(trending_repo)
+
+                # last check
+                if any(
+                    [
+                        trending_repo.repo_id is None,
+                        trending_repo.repo is None,
+                        trending_repo.repo.ai_summary is None,
+                        len(trending_repo.repo.keywords) == 0,
+                    ]
+                ):
+                    logging.error(
+                        f"Error: {repo.username}/{repo.repository_name} is missing data after processing"
+                    )
+                    self.is_any_failure = True
             except Exception as e:
                 logging.error(
                     f"Error processing repository {repo.username}/{repo.repository_name}: {e}"
                 )
-                await session.rollback()
+                self.is_any_failure = True
                 continue
-
-    # async def _update_developers(
-    #     self,
-    #     session: Session,
-    #     since: AllowedDateRanges,
-    # ):
-    #     developers = await self.github_service.get_trending_developers(
-    #         since=since,
-    #     )
-
-    #     for dev in developers:
-    #         existing_dev = session.exec(
-    #             select(Developer).where(
-    #                 Developer.username == dev.username,
-    #             )
-    #         ).first()
-
-    #         current_time = datetime.now(UTC)
-    #         if not existing_dev or existing_dev.created_at.replace(
-    #             tzinfo=UTC
-    #         ) < current_time - timedelta(hours=Settings.app.SCHEDULER_INTERVAL_HOURS):
-    #             ai_summary = await self.ai_service.generate_summary(dev)
-    #             dev.ai_summary = ai_summary
-    #             dev.summary_language = Settings.ai.SUMMARY_LANGUAGE
-
-    #             session.add(dev)
-    #             if existing_dev:
-    #                 session.delete(existing_dev)
-    #             session.commit()
-    #             session.refresh(dev)
 
     async def start(self):
         """启动调度器"""
@@ -150,8 +157,12 @@ class TrendingScheduler:
         while self.is_running:
             try:
                 await self.update_trending_data()
-                # 等待指定的时间间隔
-                await asyncio.sleep(Settings.app.SCHEDULER_INTERVAL_HOURS * 3600)
+                if self.is_any_failure:
+                    await asyncio.sleep(60)  # 如果发生错误，等待1分钟后重试
+                else:
+                    await asyncio.sleep(
+                        Settings.app.UPDATE_INTERVAL * 60
+                    )  # 等待指定的时间间隔
             except Exception as e:
                 print(f"Error in scheduler: {e}")
                 await asyncio.sleep(60)  # 发生错误时等待1分钟后重试

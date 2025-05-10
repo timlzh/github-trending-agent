@@ -31,7 +31,7 @@ class AppSettings(BaseSettings):
     PORT: int = 8000
     HOST: str = "0.0.0.0"
     LOG_LEVEL: str = "info"
-    SCHEDULER_INTERVAL_HOURS: int = 6
+    UPDATE_INTERVAL: int = 6
     OPENAI_API_KEY: Optional[str] = None
 
 

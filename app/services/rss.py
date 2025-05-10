@@ -21,6 +21,8 @@ class RSSService:
         fg.language("en")
 
         for repo in repositories:
+            if not repo:
+                continue
             fe = fg.add_entry()
             fe.title(f"{repo.username}/{repo.repository_name}")
             fe.link(href=repo.url)

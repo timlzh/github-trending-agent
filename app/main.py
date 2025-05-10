@@ -1,12 +1,10 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Optional
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import routes
 from app.config import Settings

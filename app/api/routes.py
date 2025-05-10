@@ -1,7 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Response
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Response
 
 from app.config import Settings
 from app.database import get_session

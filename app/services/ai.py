@@ -71,7 +71,7 @@ Input data:
         content = response.choices[0].message.content
         if content is None:
             return ""
-        
+
         if content.startswith("<think>"):
             content = content.split("</think>", 1)[-1].strip()
         return content

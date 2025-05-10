@@ -1,9 +1,9 @@
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.config import Settings
@@ -44,7 +44,9 @@ class TrendingScheduler:
         for repo in repositories:
             try:
                 result = await session.execute(
-                    select(Repository).where(
+                    select(Repository)
+                    .options(selectinload(Repository.keywords))
+                    .where(
                         Repository.repository_name == repo.repository_name,
                         Repository.username == repo.username,
                         Repository.summary_language == Settings.ai.SUMMARY_LANGUAGE,
@@ -111,7 +113,13 @@ class TrendingScheduler:
 
                 # 更新趋势仓库
                 result = await session.execute(
-                    select(TrendingRepository).where(
+                    select(TrendingRepository)
+                    .options(
+                        selectinload(TrendingRepository.repo).selectinload(
+                            Repository.keywords
+                        )
+                    )
+                    .where(
                         TrendingRepository.since == since,
                         TrendingRepository.rank == repo.rank,
                     )

@@ -137,7 +137,7 @@ Input data:
         tags = []
         for line in content.split("\n"):
             line = line.strip()
-            for tag in line.split(","):
+            for tag in line.replace("，", ",").split(","):
                 tag = tag.strip()
                 if tag:
                     tags.append(tag)

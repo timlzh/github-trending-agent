@@ -15,7 +15,7 @@ class RSSService:
         self, repositories: List[Repository], since: AllowedDateRanges
     ) -> str:
         fg = FeedGenerator()
-        fg.title(f"GitHub Trending Repositories ({since})")
+        fg.title(f"GitHub Trending Repositories ({since.value.capitalize()})")
         fg.description("AI summarized GitHub trending repositories")
         fg.link(href=self.base_url)
         fg.language("en")

@@ -86,7 +86,6 @@ class TrendingScheduler:
                         await session.delete(existing_repo)
                     session.add(repo)
                     await session.commit()
-                    await session.refresh(repo)
 
                     try:
                         ai_keywords = await self.ai_service.generate_tags(repo)
@@ -99,7 +98,6 @@ class TrendingScheduler:
                             keywords = keywords[:3]
                         session.add_all(keywords)
                         await session.commit()
-                        await session.refresh(repo)
                     except Exception as e:
                         logging.error(
                             f"Error generating AI keywords for {repo.username}/{repo.repository_name}: {e}"
@@ -137,7 +135,6 @@ class TrendingScheduler:
                     )
                 session.add(trending_repo)
                 await session.commit()
-                await session.refresh(trending_repo)
 
                 # last check
                 if any(
